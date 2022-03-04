@@ -71,20 +71,15 @@ func (wp *workerPool) run(ctx context.Context) {
 	defer wp.wg.Done()
 	for {
 		select {
-		case _, ok := <- wp.tasks:
+		case <- ctx.Done():
+			fmt.Printf("cancelled worker. Error detail: %v\n", ctx.Err())
+			return
+		default:
+		 	task, ok := <- wp.tasks
 			if !ok {
 				return
 			}
-			wp.results <- &Result{
-				Value: 1,
-				Err: nil,
-			}
-		case <-ctx.Done():
-			fmt.Printf("cancelled worker. Error detail: %v\n", ctx.Err())
-			wp.results <- &Result{
-				Err: ctx.Err(),
-			}
-			return
+			wp.results <- task.Func(task.Args...)
 		}
 	}
 }
